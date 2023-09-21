@@ -1,8 +1,6 @@
 "use client";
 
 import axios from "axios";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -26,24 +24,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import FileUpload from "@/components/file-upload";
+import { useRouter } from "next/navigation";
+import { useModal } from "@/hooks/use-modal-store";
 
 const formSchema = z.object({
   name: z.string().min(1, {
-    message: "Server name is required",
+    message: "Server name is required.",
   }),
   imageUrl: z.string().min(1, {
-    message: "Server image is required",
+    message: "Server image is required.",
   }),
 });
 
-const InitialModal = () => {
-  const [isMounted, setIsMounted] = useState(false);
-
+export const CreateServerModal = () => {
+  const { isOpen, onClose, type } = useModal();
   const router = useRouter();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isModalOpen = isOpen && type === "createServer";
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -57,22 +54,25 @@ const InitialModal = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await axios.post("/api/servers", values);
+      const res = await axios.post("/api/servers", values);
 
       form.reset();
       router.refresh();
-      window.location.reload();
+
+      //   router.push(`/servers/${res.data.id}`);
+      onClose();
     } catch (error) {
       console.log(error);
     }
   };
 
-  if (!isMounted) {
-    return null;
-  }
+  const handleClose = () => {
+    form.reset();
+    onClose();
+  };
 
   return (
-    <Dialog open>
+    <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-white text-black p-0 overflow-hidden">
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
@@ -103,6 +103,7 @@ const InitialModal = () => {
                   )}
                 />
               </div>
+
               <FormField
                 control={form.control}
                 name="name"
@@ -135,5 +136,3 @@ const InitialModal = () => {
     </Dialog>
   );
 };
-
-export default InitialModal;
